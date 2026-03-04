@@ -229,6 +229,28 @@ section[data-testid="stSidebar"] * {
   font-size: 0.8rem;
   margin-top: -4px;
 }
+
+.view-profile-link {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #cfd9e8;
+  background: #eef2f8;
+  color: #1f2a3d !important;
+  font-weight: 700;
+  text-decoration: none !important;
+}
+
+.view-profile-link:hover,
+.view-profile-link:active,
+.view-profile-link:focus,
+.view-profile-link:visited {
+  color: #1f2a3d !important;
+  background: #e3e9f4;
+  text-decoration: none !important;
+}
 </style>
 """,
     unsafe_allow_html=True,
@@ -680,10 +702,7 @@ with st.sidebar:
     st.markdown("<div class='system-card'><div style='font-size:0.85rem; color:#f8bb47; font-weight:700;'>SYSTEM ONLINE</div><div style='font-size:0.9rem; margin-top:6px;'>Localized Intelligence</div></div>", unsafe_allow_html=True)
     st.caption(bundle["source"])
 
-right1, right2, right3 = st.columns([6.0, 1.7, 2.0])
-with right2:
-    st.markdown("<div class='top-control-label'>Language</div>", unsafe_allow_html=True)
-    language_ui = st.selectbox("Language", ["English", "Filipino", "Kapampangan", "Bisaya"], key="header_language", label_visibility="collapsed")
+right1, right3 = st.columns([7.7, 2.3])
 with right3:
     st.markdown("<div class='top-control-label'>Case Manager</div>", unsafe_allow_html=True)
     selected_case_manager = st.selectbox(
@@ -732,7 +751,10 @@ if page == "Applicant Pipeline":
             f"<span class='risk-badge {risk_badge_class(row['score'])}'>{row['tier']}</span>",
             unsafe_allow_html=True,
         )
-        cols[4].button("View Profile", key=f"view_{row['id']}")
+        cols[4].markdown(
+            f"<a class='view-profile-link' href='?profile={row['id']}'>View Profile</a>",
+            unsafe_allow_html=True,
+        )
 
     st.markdown("</div></div>", unsafe_allow_html=True)
 
@@ -768,14 +790,14 @@ else:
         with hdr1:
             st.markdown("### Application Drafter")
         with hdr2:
-            draft_choices = ["Auto (Use Header Language)", "Draft in English", "Draft in Filipino", "Draft in Kapampangan", "Draft in Bisaya"]
-            preferred = f"Draft in {language_ui}" if f"Draft in {language_ui}" in draft_choices else "Draft in English"
+            draft_choices = ["Draft in English", "Draft in Filipino", "Draft in Kapampangan", "Draft in Bisaya"]
+            preferred = f"Draft in {selected['language']}" if f"Draft in {selected['language']}" in draft_choices else "Draft in English"
             default_idx = draft_choices.index(preferred)
             draft_mode = st.selectbox("", draft_choices, index=default_idx, label_visibility="collapsed")
         with hdr3:
             draft_now = st.button("Draft Letter", type="primary", use_container_width=True)
 
-        effective_draft_mode = f"Draft in {language_ui}" if draft_mode == "Auto (Use Header Language)" else draft_mode
+        effective_draft_mode = draft_mode
         st.markdown(
             (
                 "<div class='copy-helper'>"
