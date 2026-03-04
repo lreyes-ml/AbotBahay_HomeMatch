@@ -7,6 +7,7 @@ import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 try:
     import anthropic
@@ -211,6 +212,22 @@ section[data-testid="stSidebar"] * {
 .top-sub {
   color: #60738f;
   margin-top: -2px;
+}
+
+.top-control-label {
+  text-align: left;
+  color: #8aa0bf;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.copy-helper {
+  color: #6f84a4;
+  font-size: 0.8rem;
+  margin-top: -4px;
 }
 </style>
 """,
@@ -541,7 +558,7 @@ def missing_documents(profile: Dict) -> List[str]:
     return [label for label, matcher in required_with_matchers if not any(tok in docs for tok in matcher)]
 
 
-def deterministic_letter(profile: Dict, mode: str) -> str:
+def deterministic_letter(profile: Dict, mode: str, case_manager_name: str) -> str:
     missing = missing_documents(profile)
     list_text = "\n".join([f"- {d}" for d in missing]) if missing else "- All primary requirements are complete."
     if "Kapampangan" in mode:
@@ -552,7 +569,8 @@ def deterministic_letter(profile: Dict, mode: str) -> str:
             f"{list_text}\n\n"
             "Ngeni mang kumpleto ne, ibie mi ya king case manager para king pinal a beripikasyun.\n\n"
             "Dakal a salamat,\n"
-            "Happy Foundation"
+            f"{case_manager_name}\n"
+            "HomeMatch Housing Program Team"
         )
     if "Bisaya" in mode:
         return (
@@ -562,7 +580,8 @@ def deterministic_letter(profile: Dict, mode: str) -> str:
             f"{list_text}\n\n"
             "Kung kompleto na, among ipadala sa case manager para sa final nga validation.\n\n"
             "Daghang salamat,\n"
-            "Happy Foundation"
+            f"{case_manager_name}\n"
+            "HomeMatch Housing Program Team"
         )
     if "Filipino" in mode:
         return (
@@ -572,7 +591,8 @@ def deterministic_letter(profile: Dict, mode: str) -> str:
             f"{list_text}\n\n"
             "Kapag kumpleto na ang dokumento, ipapasa namin ito para sa final validation ng case manager.\n\n"
             "Lubos na gumagalang,\n"
-            "Happy Foundation"
+            f"{case_manager_name}\n"
+            "HomeMatch Housing Program Team"
         )
 
     return (
@@ -581,14 +601,61 @@ def deterministic_letter(profile: Dict, mode: str) -> str:
         "Please submit the following pending requirements:\n"
         f"{list_text}\n\n"
         "Once complete, we will route your file for final case-manager validation.\n\n"
-        "Regards,\n"
-        "Happy Foundation"
+        "Respectfully,\n"
+        f"{case_manager_name}\n"
+        "HomeMatch Housing Program Team"
     )
 
 
 def render_topbar(title: str, subtitle: str) -> str:
     st.markdown(f"<div class='top-title'>{title}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='top-sub'>{subtitle}</div>", unsafe_allow_html=True)
+
+
+def render_copy_button(text: str, button_id: str = "copy_draft_btn") -> None:
+    payload = (
+        text.replace("\\", "\\\\")
+        .replace("`", "\\`")
+        .replace("</", "<\\/")
+    )
+    components.html(
+        f"""
+<div style="width:100%;display:flex;justify-content:center;">
+  <button id="{button_id}" style="
+      width: 100%;
+      min-height: 44px;
+      border-radius: 12px;
+      border: 1px solid #cfd9e8;
+      background: #ffffff;
+      color: #111827;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+  ">Copy Text</button>
+</div>
+<script>
+const btn = document.getElementById("{button_id}");
+btn.addEventListener("click", async () => {{
+  try {{
+    await navigator.clipboard.writeText(`{payload}`);
+    const old = btn.innerText;
+    btn.innerText = "Copied";
+    btn.style.background = "#e8f7ef";
+    btn.style.borderColor = "#9fd9b8";
+    setTimeout(() => {{
+      btn.innerText = old;
+      btn.style.background = "#ffffff";
+      btn.style.borderColor = "#cfd9e8";
+    }}, 1400);
+  }} catch (e) {{
+    btn.innerText = "Copy Failed";
+  }}
+}});
+</script>
+""",
+        height=70,
+        scrolling=False,
+    )
 
 
 bundle = load_ml_bundle()
@@ -613,11 +680,12 @@ with st.sidebar:
     st.markdown("<div class='system-card'><div style='font-size:0.85rem; color:#f8bb47; font-weight:700;'>SYSTEM ONLINE</div><div style='font-size:0.9rem; margin-top:6px;'>Localized Intelligence</div></div>", unsafe_allow_html=True)
     st.caption(bundle["source"])
 
-right1, right2, right3 = st.columns([6.5, 1.5, 1.8])
+right1, right2, right3 = st.columns([6.0, 1.7, 2.0])
 with right2:
-    language_ui = st.selectbox("Language", ["English", "Filipino", "Kapampangan", "Bisaya"], label_visibility="collapsed")
+    st.markdown("<div class='top-control-label'>Language</div>", unsafe_allow_html=True)
+    language_ui = st.selectbox("Language", ["English", "Filipino", "Kapampangan", "Bisaya"], key="header_language", label_visibility="collapsed")
 with right3:
-    st.markdown("<div style='text-align:right; font-size:0.75rem; color:#8aa0bf; font-weight:700;'>CASE MANAGER</div>", unsafe_allow_html=True)
+    st.markdown("<div class='top-control-label'>Case Manager</div>", unsafe_allow_html=True)
     selected_case_manager = st.selectbox(
         "Case Manager",
         CASE_MANAGER_NAMES,
@@ -700,12 +768,23 @@ else:
         with hdr1:
             st.markdown("### Application Drafter")
         with hdr2:
-            draft_choices = ["Draft in English", "Draft in Filipino", "Draft in Kapampangan", "Draft in Bisaya"]
-            preferred = f"Draft in {selected['language']}" if f"Draft in {selected['language']}" in draft_choices else "Draft in English"
+            draft_choices = ["Auto (Use Header Language)", "Draft in English", "Draft in Filipino", "Draft in Kapampangan", "Draft in Bisaya"]
+            preferred = f"Draft in {language_ui}" if f"Draft in {language_ui}" in draft_choices else "Draft in English"
             default_idx = draft_choices.index(preferred)
             draft_mode = st.selectbox("", draft_choices, index=default_idx, label_visibility="collapsed")
         with hdr3:
             draft_now = st.button("Draft Letter", type="primary", use_container_width=True)
+
+        effective_draft_mode = f"Draft in {language_ui}" if draft_mode == "Auto (Use Header Language)" else draft_mode
+        st.markdown(
+            (
+                "<div class='copy-helper'>"
+                f"Draft language: <b>{effective_draft_mode.replace('Draft in ', '')}</b> | "
+                f"Assigned case manager: <b>{selected_case_manager}</b>"
+                "</div>"
+            ),
+            unsafe_allow_html=True,
+        )
 
         if "draft_output" not in st.session_state:
             st.session_state.draft_output = "Document content will appear here..."
@@ -719,11 +798,15 @@ else:
             prompt = (
                 f"Applicant: {selected['name']} ({selected['role']}) | Location: {selected['preferred_location']} | "
                 f"Readiness: {selected['score']*100:.0f}% | Missing docs: {', '.join(missing_documents(selected))} | "
-                f"Draft mode: {draft_mode}. Assigned case manager: {selected_case_manager}."
+                f"Draft mode: {effective_draft_mode}. Assigned case manager: {selected_case_manager}. "
+                "Ensure the closing signature includes the assigned case manager name."
             )
             llm_text, llm_model, llm_error = call_llm(system_prompt, prompt, max_tokens=700, temperature=0.25)
             if llm_error:
-                st.session_state.draft_output = deterministic_letter(selected, draft_mode) + f"\n\n[Fallback mode: {llm_error}]"
+                st.session_state.draft_output = (
+                    deterministic_letter(selected, effective_draft_mode, selected_case_manager)
+                    + f"\n\n[Fallback mode: {llm_error}]"
+                )
             else:
                 st.session_state.draft_output = llm_text + f"\n\n[Model: {llm_model}]"
 
@@ -733,7 +816,7 @@ else:
         with ft1:
             st.markdown("<span style='color:#8aa0bf; font-weight:700;'>POWERED BY ABOT BAHAY INTELLIGENCE</span>", unsafe_allow_html=True)
         with ft2:
-            st.button("Copy Text", use_container_width=True)
+            render_copy_button(st.session_state.draft_output, button_id="copy_draft_footer")
         with ft3:
             st.button("Approve & Send", type="primary", use_container_width=True)
 

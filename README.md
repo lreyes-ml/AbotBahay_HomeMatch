@@ -41,6 +41,17 @@ ANTHROPIC_API_KEY = "your_key_here"
   - `Ruth Nartatez`
   - `Audrey Yaneza`
 
+## Top Controls Use Cases
+- Language selector:
+  - Sets the default drafting language when `Auto (Use Header Language)` is selected.
+  - Helps standardize outbound communication per campaign/work queue.
+- Case Manager selector:
+  - Injects the selected manager name into drafting prompts.
+  - Uses selected manager name in fallback letter signature for handoff traceability.
+- Copy Text:
+  - Uses browser clipboard API to copy the current draft letter content.
+  - Remains visible with explicit styling (no hidden text on non-hover state).
+
 ## Deployment Checklist
 - [ ] `./scripts/smoke_test.sh` passes.
 - [ ] `app.py` syntax check passes.
